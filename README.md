@@ -8,7 +8,7 @@ It uses https://github.com/golang-migrate/migrate under the hood. Might supprt t
 
 1. Download the package: `go get github.com/Flur3x/go-migrate-cli`
 
-2. Grepare your migration files with correct names in a folder of your choice [(Migration file format)](https://github.com/golang-migrate/migrate/blob/master/MIGRATIONS.md)
+2. Prepare your migration files with correct names in a folder of your choice [(Migration file format)](https://github.com/golang-migrate/migrate/blob/master/MIGRATIONS.md)
 
 3. Use it in your own appliaction:
 
