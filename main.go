@@ -14,11 +14,12 @@ import (
 var m *migrate.Migrate
 
 const (
-	optionUp      = "Up"
-	optionDown    = "Down"
-	optionDrop    = "Drop all tables & indexes"
-	optionForce   = "Force specific version"
-	optionNothing = "Do nothing"
+	optionUp        = "Up"
+	optionDown      = "Down"
+	optionDrop      = "Drop all tables/indexes"
+	optionForce     = "Force specific version"
+	optionFullReset = "Reset all migrations & drop all tables/indexes"
+	optionNothing   = "Do nothing"
 )
 
 type settings struct {
@@ -65,8 +66,8 @@ func CLI(connection *sql.DB, dbName string, migrationsFolder string) {
 		fmt.Println("\nMigration successful.")
 	case optionDrop:
 		err := m.Drop()
-
 		checkErr(err)
+
 		fmt.Println("\nMigration successful.")
 	case optionForce:
 		var v int
@@ -76,6 +77,14 @@ func CLI(connection *sql.DB, dbName string, migrationsFolder string) {
 		checkErr(err)
 
 		err = m.Force(v)
+		checkErr(err)
+
+		fmt.Println("\nMigration successful.")
+	case optionFullReset:
+		err := m.Force(0)
+		checkErr(err)
+
+		err = m.Drop()
 		checkErr(err)
 
 		fmt.Println("\nMigration successful.")
@@ -99,7 +108,7 @@ func getMigrateInstance(s settings) *migrate.Migrate {
 func promptSelect() string {
 	prompt := promptui.Select{
 		Label: "Choose option",
-		Items: []string{optionUp, optionDown, optionDrop, optionForce, optionNothing},
+		Items: []string{optionUp, optionDown, optionDrop, optionForce, optionFullReset, optionNothing},
 	}
 
 	_, result, err := prompt.Run()
