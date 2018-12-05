@@ -2,25 +2,34 @@ package migrate
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
 	"github.com/golang-migrate/migrate"
 	"github.com/golang-migrate/migrate/database/postgres"
 	_ "github.com/golang-migrate/migrate/source/file" // needed for golang-migrate
 	_ "github.com/lib/pq"                             // needed for golang-migrate
 	"github.com/manifoldco/promptui"
+	"io"
 	"os"
 )
 
-var m *migrate.Migrate
-
 const (
-	optionUp        = "Up"
-	optionDown      = "Down"
-	optionDrop      = "Drop all tables/indexes"
-	optionForce     = "Force specific version"
-	optionFullReset = "Reset all migrations & drop all tables/indexes"
-	optionNothing   = "Do nothing"
+	optionUp        = "Up - all versions"
+	optionDown      = "Down - all versions"
+	optionDrop      = "Drop - all tables/indexes"
+	optionForce     = "Force - specific version"
+	optionFullReset = "Reset - force first version & drop all tables/indexes"
+	optionNothing   = "Do nothing - exit"
 )
+
+type migrationInstance interface {
+	Up() error
+	Down() error
+	Drop() error
+	Force(int) error
+	Version() (uint, bool, error)
+	Close() (error, error)
+}
 
 type settings struct {
 	connection       *sql.DB
@@ -37,33 +46,34 @@ func checkErr(err error) {
 // CLI starts the cli with the specified settings
 func CLI(connection *sql.DB, dbName string, migrationsFolder string) {
 	s := settings{connection, dbName, migrationsFolder}
-	m = getMigrateInstance(s)
+	m := getMigrateInstance(s)
 	defer m.Close()
 
-	printVersion()
+	printVersion(m)
+	startPrompt(m)
+	printVersion(m)
 
-	result := promptSelect()
+	os.Exit(0)
+}
 
-	switch result {
+func executeOption(r io.Reader, m migrationInstance, optionKey string) error {
+	switch optionKey {
 	case optionUp:
 		err := m.Up()
 
 		if err == migrate.ErrNoChange {
-			fmt.Println("Already up-to-date.")
-			break
+			return errors.New("already up-to-date")
 		}
 
-		checkErr(err)
-		fmt.Println("\nMigration successful.")
+		return err
 	case optionDown:
 		err := m.Down()
 
 		if err == migrate.ErrNoChange {
-			break
+			return errors.New("already on lowest possible version")
 		}
 
-		checkErr(err)
-		fmt.Println("\nMigration successful.")
+		return err
 	case optionDrop:
 		err := m.Drop()
 		checkErr(err)
@@ -71,53 +81,73 @@ func CLI(connection *sql.DB, dbName string, migrationsFolder string) {
 		fmt.Println("\nMigration successful.")
 	case optionForce:
 		var v int
-		fmt.Print("Version? ")
 
-		_, err := fmt.Scanf("%d", &v)
-		checkErr(err)
+		fmt.Print("Migrate to which version? ")
+
+		_, err := fmt.Fscanf(r, "%d", &v)
+
+		fmt.Println(err)
+
+		if err != nil {
+			return err
+		}
 
 		err = m.Force(v)
-		checkErr(err)
 
-		fmt.Println("\nMigration successful.")
+		return err
 	case optionFullReset:
 		err := m.Force(0)
-		checkErr(err)
+
+		if err != nil {
+			return err
+		}
 
 		err = m.Drop()
-		checkErr(err)
 
-		fmt.Println("\nMigration successful.")
+		return err
 	case optionNothing:
-		os.Exit(0)
+		return nil
 	}
 
-	printVersion()
+	return nil
 }
 
-func getMigrateInstance(s settings) *migrate.Migrate {
+func getMigrateInstance(s settings) migrationInstance {
 	driver, err := postgres.WithInstance(s.connection, &postgres.Config{})
 	checkErr(err)
 
-	m, err = migrate.NewWithDatabaseInstance("file://"+s.migrationsFolder, s.dbName, driver)
+	m, err := migrate.NewWithDatabaseInstance("file://"+s.migrationsFolder, s.dbName, driver)
 	checkErr(err)
 
 	return m
 }
 
-func promptSelect() string {
+func startPrompt(m migrationInstance) {
+	selectedOption, err := promptSelect()
+
+	if err = executeOption(os.Stdin, m, selectedOption); err != nil {
+		fmt.Println(err.Error())
+
+		startPrompt(m)
+	}
+}
+
+func promptSelect() (string, error) {
 	prompt := promptui.Select{
 		Label: "Choose option",
 		Items: []string{optionUp, optionDown, optionDrop, optionForce, optionFullReset, optionNothing},
 	}
 
 	_, result, err := prompt.Run()
-	checkErr(err)
 
-	return result
+	if err != nil {
+		return "", err
+	}
+
+	return result, nil
 }
 
-func printVersion() {
+func printVersion(m migrationInstance) {
 	v, _, err := m.Version()
 
 	if err == migrate.ErrNilVersion {
