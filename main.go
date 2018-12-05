@@ -62,58 +62,48 @@ func CLI(connection *sql.DB, dbName string, migrationsFolder string) {
 }
 
 func executeOption(r io.Reader, m migrationInstance, optionKey string) error {
+	var err error
+
 	switch optionKey {
 	case optionUp:
-		err := m.Up()
+		err = m.Up()
 
 		if err == migrate.ErrNoChange {
 			return errors.New("already up-to-date")
 		}
-
-		return err
 	case optionDown:
-		err := m.Down()
+		err = m.Down()
 
 		if err == migrate.ErrNoChange {
 			return errors.New("already on lowest possible version")
 		}
-
-		return err
 	case optionDrop:
-		err := m.Drop()
-
-		return err
+		err = m.Drop()
 	case optionForce:
 		var v int
 
 		fmt.Print("Migrate to which version? ")
 
-		_, err := fmt.Fscanf(r, "%d", &v)
-
-		fmt.Println(err)
+		_, err = fmt.Fscanf(r, "%d", &v)
 
 		if err != nil {
 			return err
 		}
 
 		err = m.Force(v)
-
-		return err
 	case optionFullReset:
-		err := m.Force(0)
+		err = m.Force(0)
 
 		if err != nil {
 			return err
 		}
 
 		err = m.Drop()
-
-		return err
 	case optionNothing:
 		return nil
 	}
 
-	return nil
+	return err
 }
 
 func getMigrateInstance(s settings) (migrationInstance, error) {
