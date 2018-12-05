@@ -1,3 +1,5 @@
+[![Build Status](https://semaphoreci.com/api/v1/flur3x/go-migrate-cli/branches/master/shields_badge.svg)](https://semaphoreci.com/flur3x/go-migrate-cli)
+
 A CLI library that let's you easily work with PostgreSQL migration files. It is intended to be wrapped by your own application. It uses https://github.com/golang-migrate/migrate under the hood. Might supprt the same amount of databases at a later date when demand is there.
 
 I created this package to have a migration binary in my app's /cmd folder that uses the same database config (.env) as the rest of the app. There are probably easier ways to do migrations, but I wanted to try it out this way. I also found it handy to have my migrations files and migration logic in the same place.
