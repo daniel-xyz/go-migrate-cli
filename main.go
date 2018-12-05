@@ -37,21 +37,26 @@ type settings struct {
 	migrationsFolder string
 }
 
-func checkErr(err error) {
+func handleError(err error) {
 	if err != nil {
-		panic(err)
+		fmt.Println(err.Error())
 	}
 }
 
 // CLI starts the cli with the specified settings
 func CLI(connection *sql.DB, dbName string, migrationsFolder string) {
 	s := settings{connection, dbName, migrationsFolder}
-	m := getMigrateInstance(s)
+	m, err := getMigrateInstance(s)
 	defer m.Close()
+	handleError(err)
 
-	printVersion(m)
+	err = printVersion(m)
+	handleError(err)
+
 	startPrompt(m)
-	printVersion(m)
+
+	err = printVersion(m)
+	handleError(err)
 
 	os.Exit(0)
 }
@@ -111,14 +116,20 @@ func executeOption(r io.Reader, m migrationInstance, optionKey string) error {
 	return nil
 }
 
-func getMigrateInstance(s settings) migrationInstance {
+func getMigrateInstance(s settings) (migrationInstance, error) {
 	driver, err := postgres.WithInstance(s.connection, &postgres.Config{})
-	checkErr(err)
+
+	if err != nil {
+		return nil, err
+	}
 
 	m, err := migrate.NewWithDatabaseInstance("file://"+s.migrationsFolder, s.dbName, driver)
-	checkErr(err)
 
-	return m
+	if err != nil {
+		return nil, err
+	}
+
+	return m, nil
 }
 
 func startPrompt(m migrationInstance) {
@@ -146,7 +157,7 @@ func promptSelect() (string, error) {
 	return result, nil
 }
 
-func printVersion(m migrationInstance) {
+func printVersion(m migrationInstance) error {
 	v, _, err := m.Version()
 
 	if err == migrate.ErrNilVersion {
@@ -154,8 +165,10 @@ func printVersion(m migrationInstance) {
 	}
 
 	if err != migrate.ErrNilVersion {
-		checkErr(err)
+		return err
 	}
 
 	fmt.Printf("Schema is at v%d.\n\n", v)
+
+	return nil
 }
