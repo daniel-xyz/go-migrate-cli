@@ -76,9 +76,8 @@ func executeOption(r io.Reader, m migrationInstance, optionKey string) error {
 		return err
 	case optionDrop:
 		err := m.Drop()
-		checkErr(err)
 
-		fmt.Println("\nMigration successful.")
+		return err
 	case optionForce:
 		var v int
 
