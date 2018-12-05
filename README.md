@@ -10,6 +10,11 @@ I created this package to have a migration binary in my app's /cmd folder that u
 
 2. Prepare migration files in a folder of your choice [(Migration file format)](https://github.com/golang-migrate/migrate/blob/master/MIGRATIONS.md)
 
+**Example**
+This is how I organized the migration files in my own app:
+
+![](example_folder_structure.png)
+
 3. Use it in your own appliaction, e.g. like this:
 
 ```go
@@ -22,7 +27,7 @@ func main() {
 }
 ```
 
-4. Start it, e.g. with `go run cmd/migration/main.go`, depending on your individual folder strucutre
+4. Start it, e.g. with `go run cmd/migration/main.go`, depending on your individual folder structure
 5. May the CLI be with you 😎
 
 ### Be warned
