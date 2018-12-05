@@ -3,12 +3,13 @@ package migrate
 import (
 	"errors"
 	"github.com/stretchr/testify/assert"
+	"strconv"
 	"strings"
 	"testing"
 )
 
 func TestExecuteOption(t *testing.T) {
-	tests := []struct {
+	testScenarios := []struct {
 		option            string
 		userInput         string
 		migrationInstance *mockMigration
@@ -94,20 +95,22 @@ func TestExecuteOption(t *testing.T) {
 		},
 	}
 
-	for _, test := range tests {
-		r := strings.NewReader(test.userInput)
-		err := executeOption(r, test.migrationInstance, test.option)
+	for i, scenario := range testScenarios {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			r := strings.NewReader(scenario.userInput)
+			err := executeOption(r, scenario.migrationInstance, scenario.option)
 
-		if test.expectedError != nil {
-			assert.EqualError(t, err, test.expectedError.Error())
-		}
+			if scenario.expectedError != nil {
+				assert.EqualError(t, err, scenario.expectedError.Error())
+			}
 
-		if test.expectedError == nil {
-			assert.NoError(t, err)
-		}
+			if scenario.expectedError == nil {
+				assert.NoError(t, err)
+			}
 
-		assert.Equal(t, test.expectedFuncCall, test.migrationInstance.lastMigrationCall)
+			assert.Equal(t, scenario.expectedFuncCall, scenario.migrationInstance.lastMigrationCall)
 
-		test.migrationInstance.lastMigrationCall = ""
+			scenario.migrationInstance.lastMigrationCall = ""
+		})
 	}
 }
