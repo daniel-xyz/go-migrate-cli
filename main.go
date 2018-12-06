@@ -2,8 +2,8 @@ package migrate
 
 import (
 	"database/sql"
-	"errors"
 	"fmt"
+	"github.com/fatih/color"
 	"github.com/golang-migrate/migrate"
 	"github.com/golang-migrate/migrate/database/postgres"
 	_ "github.com/golang-migrate/migrate/source/file" // needed for golang-migrate
@@ -39,7 +39,7 @@ type settings struct {
 
 func handleError(err error) {
 	if err != nil {
-		fmt.Println(err.Error())
+		color.Red(err.Error())
 	}
 }
 
@@ -69,16 +69,36 @@ func executeOption(r io.Reader, m migrationInstance, optionKey string) error {
 		err = m.Up()
 
 		if err == migrate.ErrNoChange {
-			return errors.New("already up-to-date")
+			color.Green("Already up-to-date")
+			return nil
 		}
+
+		if err != nil {
+			return err
+		}
+
+		color.Green("Successfully migrated to latest version")
 	case optionDown:
 		err = m.Down()
 
 		if err == migrate.ErrNoChange {
-			return errors.New("already on lowest possible version")
+			color.Green("Already on lowest version")
+			return nil
 		}
+
+		if err != nil {
+			return err
+		}
+
+		color.Green("Successfully migrated to lowest version")
 	case optionDrop:
 		err = m.Drop()
+
+		if err != nil {
+			return err
+		}
+
+		color.Green("Successfully dropped tables and indexes")
 	case optionForce:
 		var v int
 
@@ -91,6 +111,12 @@ func executeOption(r io.Reader, m migrationInstance, optionKey string) error {
 		}
 
 		err = m.Force(v)
+
+		if err != nil {
+			return err
+		}
+
+		color.Green("Successfully migrated to forced version")
 	case optionFullReset:
 		err = m.Force(0)
 
@@ -99,6 +125,12 @@ func executeOption(r io.Reader, m migrationInstance, optionKey string) error {
 		}
 
 		err = m.Drop()
+
+		if err != nil {
+			return err
+		}
+
+		color.Green("Successfully dropped tables/indexes and forced version")
 	case optionNothing:
 		return nil
 	}
@@ -126,7 +158,7 @@ func startPrompt(m migrationInstance) {
 	selectedOption, err := promptSelect()
 
 	if err = executeOption(os.Stdin, m, selectedOption); err != nil {
-		fmt.Println(err.Error())
+		color.Red(err.Error())
 
 		startPrompt(m)
 	}
@@ -148,17 +180,16 @@ func promptSelect() (string, error) {
 }
 
 func printVersion(m migrationInstance) error {
-	v, _, err := m.Version()
+	version, _, err := m.Version()
 
-	if err == migrate.ErrNilVersion {
-		fmt.Println("\nNo migrations have been done yet. ")
-	}
-
-	if err != migrate.ErrNilVersion {
+	if err != nil && err != migrate.ErrNilVersion {
 		return err
 	}
 
-	fmt.Printf("Schema is at v%d.\n\n", v)
+	msg := fmt.Sprintf("Schema is at v%d", version)
+	cyan := color.New(color.FgCyan).SprintFunc()
+
+	fmt.Printf("%s %s\n\n", cyan("Status:"), msg)
 
 	return nil
 }

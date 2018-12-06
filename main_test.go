@@ -33,7 +33,7 @@ func TestExecuteOption(t *testing.T) {
 				lastMigrationCall: "",
 			},
 			expectedFuncCall: "Up",
-			expectedError:    errors.New("already up-to-date"),
+			expectedError:    nil,
 		},
 		{
 			option:    optionDown,
@@ -56,7 +56,7 @@ func TestExecuteOption(t *testing.T) {
 				lastMigrationCall: "",
 			},
 			expectedFuncCall: "Down",
-			expectedError:    errors.New("already on lowest possible version"),
+			expectedError:    nil,
 		},
 		{
 			option:            optionDrop,
