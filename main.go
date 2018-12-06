@@ -69,36 +69,24 @@ func executeOption(r io.Reader, m migrationInstance, optionKey string) error {
 		err = m.Up()
 
 		if err == migrate.ErrNoChange {
-			color.Green("Already up-to-date")
+			msgOnSuccess(nil, "Already up-to-date")
 			return nil
 		}
 
-		if err != nil {
-			return err
-		}
-
-		color.Green("Successfully migrated to latest version")
+		msgOnSuccess(err, "Successfully migrated to latest version")
 	case optionDown:
 		err = m.Down()
 
 		if err == migrate.ErrNoChange {
-			color.Green("Already on lowest version")
+			msgOnSuccess(nil, "Already on lowest version")
 			return nil
 		}
 
-		if err != nil {
-			return err
-		}
-
-		color.Green("Successfully migrated to lowest version")
+		msgOnSuccess(err, "Successfully migrated to lowest version")
 	case optionDrop:
 		err = m.Drop()
 
-		if err != nil {
-			return err
-		}
-
-		color.Green("Successfully dropped tables and indexes")
+		msgOnSuccess(err, "Successfully dropped tables and indexes")
 	case optionForce:
 		var v int
 
@@ -112,11 +100,7 @@ func executeOption(r io.Reader, m migrationInstance, optionKey string) error {
 
 		err = m.Force(v)
 
-		if err != nil {
-			return err
-		}
-
-		color.Green("Successfully migrated to forced version")
+		msgOnSuccess(err, "Successfully migrated to forced version")
 	case optionFullReset:
 		err = m.Force(0)
 
@@ -126,11 +110,7 @@ func executeOption(r io.Reader, m migrationInstance, optionKey string) error {
 
 		err = m.Drop()
 
-		if err != nil {
-			return err
-		}
-
-		color.Green("Successfully dropped tables/indexes and forced version")
+		msgOnSuccess(err, "Successfully dropped tables/indexes and forced version")
 	case optionNothing:
 		return nil
 	}
@@ -192,4 +172,12 @@ func printVersion(m migrationInstance) error {
 	fmt.Printf("%s %s\n\n", cyan("Status:"), msg)
 
 	return nil
+}
+
+func msgOnSuccess(err error, msg string) {
+	if err != nil {
+		return
+	}
+
+	color.Green(msg)
 }
